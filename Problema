@@ -1,0 +1,132 @@
+package com.mygdx.game;
+
+import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Gdx.*;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.*;
+
+
+public class MyGdxGame extends ApplicationAdapter {
+	private SpriteBatch batch;
+	private BitmapFont font; // font: mustra caractares en pantalla.
+	private Texture coche;
+
+	private Sprite miCoche;
+	/**Velocidad que lleva el coche. */
+	private int velocidad = 0;
+	/**Aceleracion que lleva el coche. */
+	private float aceleracion = 0;
+	/**Donde debe desplazarse ahora el coche. */
+	private float objetivoX = 0;
+	/**¿El coche debe moverse por que hemos hecho click? */
+	private boolean debeMoverse = false;
+	
+	
+	@Override
+	public void create () {
+		batch = new SpriteBatch();
+		font = new BitmapFont();
+		coche = new Texture("coche.png");
+		miCoche = new Sprite(coche, 0, 0, 215, 83);
+		miCoche.setPosition(50, 50);
+	}
+
+	@Override
+	public void render () {
+		renderizarJuego();
+		
+		procesarEntrada();
+	}
+
+	private void renderizarJuego() {
+		Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		batch.begin();
+		miCoche.draw(batch);
+		batch.end();
+	}
+	
+		
+	//entrada por teclado.
+	private void procesarEntrada() {
+		if(debeMoverse) 
+			return;
+		boolean izquierda = Gdx.input.isKeyPressed(Input.Keys.A) 
+				|| Gdx.input.isKeyPressed(Input.Keys.LEFT);
+		boolean derecha = Gdx.input.isKeyPressed(Input.Keys.D) 
+				|| Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+		boolean puedeMoverse = (izquierda != derecha);
+		if (puedeMoverse && derecha)
+			acelerar();
+		 else if (izquierda && izquierda)
+			marchaAtras();
+			else
+		     frenarCoche();
+	}
+		
+	/**entrada por raton */
+	private void entradaRaton() {
+		// determinamos is hay que iniciar un movimiento.
+		if (Gdx.input.isTouched()) 
+			debeMoverse = true;
+			objetivoX = Gdx.input.getX();
+			// Si tenemos que ir a la derecha, que lleguemos con el capó.
+			if (objetivoX > miCoche.getX()) 
+				objetivoX -= miCoche.getWidth();
+			
+		 
+		
+		if (debeMoverse) {
+			float distRestante = objetivoX - miCoche.getX();
+			if (distRestante > 0)
+				acelerar();
+			else 
+				marchaAtras();
+			debeMoverse = Math.abs(distRestante) > 10f;
+		}
+		
+		else {
+			frenarCoche(); (*)
+		}
+		
+		/**Intenta acelerar el coche si no tiene aceleracion maxima. */
+		private void acelerar() {
+			if (aceleracion <= 240f) aceleracion += 60f;
+		}
+		
+		/**lleba el coche marcha atras. */
+		private void marchaAtras() {
+			if (aceleracion >= -240f) aceleracion -= 40f;
+		}
+		
+		/**Se asegura de que el coche esta quieto o lo frena si no lo está. */
+		private void frenarCoche() {
+			// Como no se puede mover, la aceleracion es 0 y las fuerzas 
+			// de friccion hacen que el coche se vaya frenando progresivamente.
+			aceleracion = 0;
+			// Como trabajamos con flotantes, tenemos que establecer un limite 
+			// de seguridad ya que los calculos nunca tendran buena precisión.
+			if (Math.abs(velocidad) > 0.5f)
+				velocidad *= 0.95f;
+			else
+			velocidad = 0;
+		}
+		// Actualizamos la posiscion del coche usando las formulas del MRUV.
+		// v = v0 + at, x = x0 + vt + 0.5at² (revisen su libro de física...)
+		private void actualizarPosicionCoche() {
+			float posicion = miCoche.getX();
+			float tiempo = Gdx.graphics.getDeltaTime();
+			velocidad += aceleracion * tiempo;
+			posicion += velocidad * tiempo + 0.5 * aceleracion * (tiempo * tiempo);
+			miCoche.setX(posicion);
+		}
+	
+	@Override
+	public void dispose() {
+		super.dispose();
+		coche.dispose();
+	}
+}
